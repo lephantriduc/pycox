@@ -1,6 +1,6 @@
 
 from pycox.models import base, loss, utils, pmf, data
-from pycox.models.cox import CoxPH
+from pycox.models.cox import CoxPH, MoEDeepSurv
 from pycox.models.cox_cc import CoxCC
 from pycox.models.cox_time import CoxTime
 from pycox.models.deephit import DeepHitSingle, DeepHit

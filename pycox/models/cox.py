@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import torch
 import torchtuples as tt
+import tt.nn as nn
+import torch.nn.functional as F
 from pycox import models
 
 def search_sorted_idx(array, values):
@@ -317,42 +319,55 @@ class CoxPH(_CoxPHBase):
         super().__init__(net, loss, optimizer, device)
 
 
-class CoxPHSorted(_CoxPHBase):
-    """Cox proportional hazards model parameterized with a neural net.
-    This is essentially the DeepSurv method [1].
 
-    The loss function is not quite the partial log-likelihood, but close.    
-    The difference is that for tied events, we use a random order instead of 
-    including all individuals that had an event at that point in time.
+# Implementation of Mixture of Experts on DeepSurv
+class MoEDeepSurv(nn.Module):
+    def __init__(self,
+                 input_dim,
+                 n_experts=3,
+                 expert_hidden=[64, 32],
+                 gate_hidden=[32],
+                 expert_dropout=0.3,
+                 gate_dropout=0.1):
+        super().__init__()
+        self.n_experts = n_experts
 
-    Arguments:
-        net {torch.nn.Module} -- A pytorch net.
-    
-    Keyword Arguments:
-        optimizer {torch or torchtuples optimizer} -- Optimizer (default: {None})
-        device {str, int, torch.device} -- Device to compute on. (default: {None})
-            Preferably pass a torch.device object.
-            If 'None': use default gpu if available, else use cpu.
-            If 'int': used that gpu: torch.device('cuda:<device>').
-            If 'string': string is passed to torch.device('string').
+        # Experts
+        self.experts = nn.ModuleList([
+            self._make_expert(input_dim, expert_hidden, expert_dropout)
+            for _ in range(n_experts)
+        ])
 
-    [1] Jared L. Katzman, Uri Shaham, Alexander Cloninger, Jonathan Bates, Tingting Jiang, and Yuval Kluger.
-        Deepsurv: personalized treatment recommender system using a Cox proportional hazards deep neural network.
-        BMC Medical Research Methodology, 18(1), 2018.
-        https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-018-0482-1
-    """
-    def __init__(self, net, optimizer=None, device=None, loss=None):
-        warnings.warn('Use `CoxPH` instead. This will be removed', DeprecationWarning)
-        if loss is None:
-            loss = models.loss.CoxPHLossSorted()
-        super().__init__(net, loss, optimizer, device)
+        # Gate
+        self.gate = self._make_gate(input_dim, gate_hidden, gate_dropout, n_experts)
 
-    @staticmethod
-    def make_dataloader(data, batch_size, shuffle, num_workers=0):
-        dataloader = tt.make_dataloader(data, batch_size, shuffle, num_workers,
-                                        make_dataset=models.data.DurationSortedDataset)
-        return dataloader
+    def _make_expert(self, input_dim, hidden_layers, dropout):
+        layers = []
+        dims = [input_dim] + hidden_layers
+        for i in range(len(hidden_layers)):
+            layers.append(nn.Linear(dims[i], dims[i+1]))
+            layers.append(nn.ReLU())
+            if dropout > 0:
+                layers.append(nn.Dropout(dropout))
+        layers.append(nn.Linear(dims[-1], 1))  # log-hazard
+        return nn.Sequential(*layers)
 
-    def make_dataloader_predict(self, input, batch_size, shuffle=False, num_workers=0):
-        dataloader = super().make_dataloader(input, batch_size, shuffle, num_workers)
-        return dataloader
+    def _make_gate(self, input_dim, hidden_layers, dropout, n_experts):
+        layers = []
+        dims = [input_dim] + hidden_layers
+        for i in range(len(hidden_layers)):
+            layers.append(nn.Linear(dims[i], dims[i+1]))
+            layers.append(nn.ReLU())
+            if dropout > 0:
+                layers.append(nn.Dropout(dropout))
+        layers.append(nn.Linear(dims[-1], n_experts))  # logits for experts
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        gate_logits = self.gate(x)                # (batch, n_experts)
+        gate_w = F.softmax(gate_logits, dim=1)    # mixture weights
+
+        expert_outs = torch.cat([expert(x) for expert in self.experts], dim=1)  # (batch, n_experts)
+        log_h = (gate_w * expert_outs).sum(dim=1)                         # (batch,)
+
+        return log_h

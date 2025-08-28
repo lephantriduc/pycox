@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from pycox import utils
+from main import utils
 
 def test_kaplan_meier():
     durations = np.array([1., 1., 2., 3.])

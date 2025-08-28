@@ -3,8 +3,8 @@ import numpy as np
 import torch
 import torchtuples as tt
 
-from pycox.models.data import pair_rank_mat
-from pycox.models import loss
+from main.models.data import pair_rank_mat
+from main.models import loss
 
 @pytest.mark.parametrize('seed', [0, 1, 2])
 @pytest.mark.parametrize('m', [1, 5, 8])

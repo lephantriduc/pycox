@@ -1,7 +1,7 @@
 import pytest
 import torchtuples as tt
-from pycox.models import CoxCC
-from pycox.models.cox_time import MLPVanillaCoxTime
+from main.models import CoxCC
+from main.models.cox_time import MLPVanillaCoxTime
 
 from utils_model_testing import make_dataset, fit_model, assert_survs
 

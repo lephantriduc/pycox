@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import torch
-from pycox.models.utils import pad_col, make_subgrid, cumsum_reverse
+from main.models.utils import pad_col, make_subgrid, cumsum_reverse
 
 @pytest.mark.parametrize('val', [0, 1, 5])
 def test_pad_col_start(val):

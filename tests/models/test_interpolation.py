@@ -1,7 +1,7 @@
 import pytest
 import torch
-from pycox import models
-from pycox.models.interpolation import InterpolateDiscrete
+from main import models
+from main.models.interpolation import InterpolateDiscrete
 
 
 class MockPMF(models.PMF):

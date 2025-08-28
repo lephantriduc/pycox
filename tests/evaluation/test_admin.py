@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from pycox.evaluation import admin
-from pycox.evaluation import EvalSurv
+from main.evaluation import admin
+from main.evaluation import EvalSurv
 
 
 def test_brier_score_no_censor():

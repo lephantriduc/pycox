@@ -1,5 +1,5 @@
 import pytest
-from pycox.models import MTLR
+from main.models import MTLR
 import torchtuples as tt
 
 from utils_model_testing import make_dataset, fit_model, assert_survs

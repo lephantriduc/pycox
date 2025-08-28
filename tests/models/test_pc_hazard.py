@@ -2,7 +2,7 @@ import pytest
 import torch
 import numpy as np
 import torchtuples as tt
-from pycox.models import PCHazard
+from main.models import PCHazard
 
 from utils_model_testing import make_dataset, fit_model, assert_survs
 

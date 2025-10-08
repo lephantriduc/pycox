@@ -73,10 +73,9 @@ binomial_log_likelihood = administrative_scores(_binomial_log_likelihood)
 def _integrated_admin_metric(func):
     def metric(time_grid, durations, durations_c, events, surv, index_surv, steps_surv='post'):
         scores = func(time_grid, durations, durations_c, events, surv, index_surv, True, steps_surv)
-        integral = scipy.integrate.simps(scores, time_grid)
+        integral = scipy.integrate.simpson(scores, time_grid)
         return integral / (time_grid[-1] - time_grid[0])
     return metric
 
 integrated_brier_score = _integrated_admin_metric(brier_score)
 integrated_binomial_log_likelihood = _integrated_admin_metric(binomial_log_likelihood)
-
